@@ -1,0 +1,148 @@
+<#
+.SYNOPSIS
+  Check existence of emails in AWS Identity Store and print a concise report.
+
+.NOTES
+  - This example is for demonstrative purposes.
+  - Do NOT hardcode credentials or tenant identifiers in public code.
+  - Required: AWS CLI configured with an identity that has permission to call identitystore:ListUsers.
+#>
+
+param(
+    # Set ID via env var or parameter; never hardcode in public repos.
+    [string]$IdentityStoreId = $env:IDENTITY_STORE_ID
+)
+
+if (-not $IdentityStoreId) {
+    Write-Host "ERROR: Identity Store ID not set. Provide via IDENTITY_STORE_ID env var or -IdentityStoreId param." -ForegroundColor Red
+    exit 1
+}
+
+# Email input file (one email per line) in same folder as script
+$EmailFile = Join-Path -Path $PSScriptRoot -ChildPath "emails.txt"
+if (-not (Test-Path $EmailFile)) {
+    Write-Host "ERROR: emails.txt not found at $EmailFile" -ForegroundColor Red
+    exit 1
+}
+
+# Load and sanitize input
+$EmailsToCheck = Get-Content $EmailFile | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" } | Select-Object -Unique
+if ($EmailsToCheck.Count -eq 0) {
+    Write-Host "ERROR: emails.txt is empty. Nothing to check." -ForegroundColor Red
+    exit 1
+}
+
+# Helper: fail-fast on AWS CLI error (do not dump raw responses publicly)
+function FailIfAwsError {
+    param($LastExitCode, $ContextMessage)
+    if ($LastExitCode -ne 0) {
+        Write-Host "ERROR: AWS CLI returned an error while $ContextMessage. Aborting." -ForegroundColor Red
+        exit 1
+    }
+}
+
+# Fetch users from AWS Identity Store (paginated)
+$allUsers = [System.Collections.Generic.List[Object]]::new()
+$nextToken = $null
+
+do {
+    $args = @(
+        "identitystore", "list-users",
+        "--identity-store-id", $IdentityStoreId,
+        "--output", "json",
+        "--max-results", "50"
+    )
+    if ($nextToken) { $args += @("--next-token", $nextToken) }
+
+    $raw = aws @args 2>$null
+    FailIfAwsError $LASTEXITCODE "listing identity store users"
+
+    if (-not $raw) {
+        # No output — treat as error
+        Write-Host "ERROR: Empty response from AWS CLI when listing users. Check permissions and connectivity." -ForegroundColor Red
+        exit 1
+    }
+
+    $resp = $raw | ConvertFrom-Json -ErrorAction Stop
+
+    if ($resp.Users) {
+        foreach ($u in $resp.Users) {
+            $primaryEmail = $null
+            if ($u.Emails) {
+                $primary = $u.Emails | Where-Object { $_.Primary -eq $true } | Select-Object -First 1
+                if (-not $primary) { $primary = $u.Emails[0] }
+                if ($primary) { $primaryEmail = $primary.Value }
+            }
+            $allUsers.Add([PSCustomObject]@{
+                UserId       = if ($u.UserId) { $u.UserId } else { "" }
+                UserName     = if ($u.UserName) { $u.UserName } else { "" }
+                DisplayName  = if ($u.DisplayName) { $u.DisplayName } else { "" }
+                PrimaryEmail = $primaryEmail
+            })
+        }
+    }
+
+    $nextToken = if ($resp.NextToken) { $resp.NextToken } else { $null }
+} while ($nextToken)
+
+if ($allUsers.Count -eq 0) {
+    Write-Host "ERROR: No users fetched from the Identity Store. Check permissions or Identity Store ID." -ForegroundColor Red
+    exit 1
+}
+
+# Build results
+$found = New-Object System.Collections.Generic.List[Object]
+$notfound = New-Object System.Collections.Generic.List[Object]
+
+foreach ($email in $EmailsToCheck) {
+    $m = $allUsers | Where-Object { $_.PrimaryEmail -and ($_.PrimaryEmail -ieq $email) } | Select-Object -First 1
+    if ($m) {
+        $found.Add([PSCustomObject]@{
+            Email = $email
+            UserName = $m.UserName
+            UserId = $m.UserId
+            DisplayName = $m.DisplayName
+        })
+    } else {
+        $notfound.Add($email)
+    }
+}
+
+# === PRINT REPORT ===
+$sep = "=" * 40
+Clear-Host
+Write-Host $sep
+Write-Host "Identity Store Email Existence Check"
+Write-Host $sep
+Write-Host ""
+Write-Host ("Run at: {0}" -f (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")) -ForegroundColor DarkGray
+Write-Host ""
+Write-Host "=== SUMMARY ==="
+Write-Host ("Emails checked: {0}" -f $EmailsToCheck.Count)
+Write-Host ("Found in Identity Store: {0}" -f $found.Count)
+Write-Host ("Not found in Identity Store: {0}" -f $notfound.Count)
+Write-Host ""
+Write-Host "== FOUND =="
+if ($found.Count -gt 0) {
+    foreach ($r in $found) {
+        if ($r.UserId) {
+            Write-Host ("{0} -> {1} (uid={2})" -f $r.Email, $r.UserName, $r.UserId)
+        } else {
+            Write-Host ("{0} -> {1}" -f $r.Email, $r.UserName)
+        }
+    }
+} else {
+    Write-Host "(none)"
+}
+Write-Host ""
+Write-Host "== NOT FOUND =="
+if ($notfound.Count -gt 0) {
+    foreach ($e in $notfound) { Write-Host $e }
+} else {
+    Write-Host "(none)"
+}
+Write-Host ""
+Write-Host $sep
+Write-Host "Check completed."
+Write-Host $sep
+exit 0
