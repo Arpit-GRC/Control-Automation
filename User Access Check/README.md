@@ -88,7 +88,7 @@ user3@company.com
 Check completed.
 ========================================
 
-text```
+```text
 
 
 | Framework      | Control Objective                        |
