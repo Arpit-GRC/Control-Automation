@@ -1,5 +1,5 @@
-AWS – Terminated User Access Verification (AWS Identity Store)
-Summary
+# AWS – Terminated User Access Verification (AWS Identity Store)
+## Summary
 
 Access reviews for terminated users are a high-risk, high-effort control in most organizations.
 They are often manual, fragmented across systems, and performed reactively during audits.
@@ -8,7 +8,7 @@ This solution provides a single, repeatable check to verify whether terminated u
 
 The tool is designed for security, GRC, IAM, and audit teams who need clear, defensible evidence without relying on screenshots, spreadsheets, or manual AWS console checks.
 
-The Problem This Solves
+### The Problem This Solves
 Common challenges in access reviews
 
 - Termination lists come from HR, but verification across AWS is manual
@@ -17,14 +17,14 @@ Common challenges in access reviews
 - SSO sessions expire, causing unreliable automation
 - Audit evidence is scattered, subjective, and time-consuming to re-create
 
-Risk impact
+### Risk impact
 
 - Delayed or incomplete removal of access
 - Weak evidence during ISO 27001 / SOC 2 / internal audits
 - High operational overhead every quarter
 
 
-The Approach
+### The Approach
 
 This solution creates a single source of truth for terminated user verification:
 
@@ -36,25 +36,25 @@ No AWS console navigation.
 No spreadsheets.
 No guesswork.
 
-How It Works (High Level)
+### How It Works (High Level)
 
-Termination input
+** Termination input
 
 - Terminated users are listed in emails.txt (one email per line)
 - No script changes are required between runs
 
-Authenticated execution
+** Authenticated execution
 
 - Uses AWS SSO with a pinned profile
 - Automatically fails fast if authentication is invalid
 - Ensures results are always generated using an authenticated identity
 
-Identity Store verification
+** Identity Store verification
 
 - Retrieves users from AWS Identity Store
 - Matches terminated emails against existing identities
 
-Output
+** Output
 
 - Displays results directly in the console:
 
@@ -98,7 +98,7 @@ Check completed.
 | Internal Audit | User de-provisioning verification        |
 
 
-Who This Is For
+### Who This Is For
 
 - GRC professionals conducting access reviews
 - IAM teams validating de-provisioning
