@@ -66,7 +66,7 @@ Output
 
 ```text
 ========================================
-One View Access Check - Terminated Users
+AWS Access Check - Terminated Users
 ========================================
 
 Run at: 2026-01-22 15:04:12
@@ -87,8 +87,7 @@ user3@company.com
 ========================================
 Check completed.
 ========================================
-
-```text
+```
 
 
 | Framework      | Control Objective                        |
