@@ -38,23 +38,23 @@ No guesswork.
 
 ### How It Works (High Level)
 
-** Termination input **
+Termination input
 
 - Terminated users are listed in emails.txt (one email per line)
 - No script changes are required between runs
 
-** Authenticated execution **
+Authenticated execution
 
 - Uses AWS SSO with a pinned profile
 - Automatically fails fast if authentication is invalid
 - Ensures results are always generated using an authenticated identity
 
-** Identity Store verification **
+Identity Store verification
 
 - Retrieves users from AWS Identity Store
 - Matches terminated emails against existing identities
 
-** Output **
+Output
 
 - Displays results directly in the console:
 
