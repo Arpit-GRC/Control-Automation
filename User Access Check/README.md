@@ -64,11 +64,8 @@ Output
   Includes date and time of execution
   Clear separation of FOUND vs NOT FOUND
 
-
-EXAMPLE OUTPUT
 ========================================
 AWS Access Check - Terminated Users
-========================================
 
 Run at: 2026-01-22 15:04:12
 
@@ -78,16 +75,18 @@ Terminated found in Identity Store: 1
 Terminated not found in Identity Store: 10
 
 == FOUND ==
-user1@company.com -> jdoe(uid=abcd1234)
+user1@company.com
+ -> jdoe(uid=abcd1234)
 
 == NOT FOUND ==
 user2@company.com
+
 user3@company.com
+
 ...
 
 ========================================
 Check completed.
-========================================
 
 
 | Framework      | Control Objective                        |
